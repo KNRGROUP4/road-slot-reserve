@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ParkingGrid from '@/components/ParkingGrid';
 import BookingForm from '@/components/BookingForm';
 import BookingHistory from '@/components/BookingHistory';
-import { Calendar, Car, Clock, Users } from 'lucide-react';
+import { Calendar, Car, Clock, Users, LogIn, UserPlus, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export interface ParkingSlot {
   id: string;
@@ -31,12 +32,28 @@ export interface Booking {
 }
 
 const Index = () => {
-  const [currentUser, setCurrentUser] = useState<string>('John Doe');
-  const [currentUserEmail, setCurrentUserEmail] = useState<string>('john@example.com');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<string>('Guest');
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
   const [parkingSlots, setParkingSlots] = useState<ParkingSlot[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<ParkingSlot | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Check if user is logged in
+  useEffect(() => {
+    const userDetails = localStorage.getItem('currentUser');
+    if (userDetails) {
+      const user = JSON.parse(userDetails);
+      setIsLoggedIn(true);
+      setCurrentUser(user.name);
+      setCurrentUserEmail(user.email);
+    } else {
+      setIsLoggedIn(false);
+      setCurrentUser('Guest');
+      setCurrentUserEmail('');
+    }
+  }, []);
 
   // Initialize parking slots (6x8 grid = 48 slots)
   useEffect(() => {
@@ -72,6 +89,12 @@ const Index = () => {
   const totalSlots = parkingSlots.length;
 
   const handleSlotSelect = (slot: ParkingSlot) => {
+    if (!isLoggedIn) {
+      // Redirect to login if not logged in
+      window.location.href = '/login';
+      return;
+    }
+
     if (!slot.isBooked) {
       setSelectedSlot(slot);
       setActiveTab('book');
@@ -79,6 +102,11 @@ const Index = () => {
   };
 
   const handleBookSlot = (slotId: string, date: string, startTime: string, endTime: string) => {
+    if (!isLoggedIn) {
+      window.location.href = '/login';
+      return;
+    }
+
     const newBooking: Booking = {
       id: `booking-${Date.now()}`,
       slotNumber: parkingSlots.find(s => s.id === slotId)?.number || '',
@@ -120,13 +148,41 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <Car className="h-8 w-8 text-blue-600 mr-2" />
-            <h1 className="text-4xl font-bold text-gray-900">ParkEase</h1>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <div className="text-center md:text-left mb-4 md:mb-0">
+            <div className="flex items-center justify-center md:justify-start mb-2">
+              <Car className="h-8 w-8 text-blue-600 mr-2" />
+              <h1 className="text-4xl font-bold text-gray-900">ParkEase</h1>
+            </div>
+            <p className="text-xl text-gray-600">Smart Parking Slot Booking System</p>
           </div>
-          <p className="text-xl text-gray-600">Smart Parking Slot Booking System</p>
-          <p className="text-sm text-gray-500 mt-2">Welcome back, {currentUser}!</p>
+          
+          {/* Auth buttons */}
+          <div className="flex items-center justify-center md:justify-end space-x-3">
+            {isLoggedIn ? (
+              <div className="flex items-center space-x-3">
+                <p className="text-sm text-gray-600">Welcome, {currentUser}!</p>
+                <Link to="/profile">
+                  <Button variant="outline" className="flex items-center gap-1">
+                    <User className="h-4 w-4" /> My Profile
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="outline" className="flex items-center gap-1">
+                    <LogIn className="h-4 w-4" /> Login
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button variant="default" className="flex items-center gap-1">
+                    <UserPlus className="h-4 w-4" /> Register
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -202,21 +258,46 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="book" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Book a Parking Slot</CardTitle>
-                <CardDescription>
-                  Select a slot from the grid or choose your preferred slot below.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <BookingForm 
-                  slots={parkingSlots}
-                  selectedSlot={selectedSlot}
-                  onBookSlot={handleBookSlot}
-                />
-              </CardContent>
-            </Card>
+            {isLoggedIn ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Book a Parking Slot</CardTitle>
+                  <CardDescription>
+                    Select a slot from the grid or choose your preferred slot below.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <BookingForm 
+                    slots={parkingSlots}
+                    selectedSlot={selectedSlot}
+                    onBookSlot={handleBookSlot}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Authentication Required</CardTitle>
+                  <CardDescription>
+                    Please login or create an account to book parking slots.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
+                  <User className="h-16 w-16 text-gray-400" />
+                  <div className="text-center space-y-2">
+                    <p className="text-gray-600">You need to be logged in to book parking slots.</p>
+                    <div className="flex items-center justify-center space-x-4 mt-4">
+                      <Link to="/login">
+                        <Button variant="default">Login</Button>
+                      </Link>
+                      <Link to="/register">
+                        <Button variant="outline">Register</Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="history" className="space-y-6">
@@ -224,11 +305,32 @@ const Index = () => {
               <CardHeader>
                 <CardTitle>My Booking History</CardTitle>
                 <CardDescription>
-                  View all your past and current parking slot bookings.
+                  {isLoggedIn 
+                    ? "View all your past and current parking slot bookings." 
+                    : "Please login to view your booking history."}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <BookingHistory bookings={bookings} />
+                {isLoggedIn ? (
+                  <BookingHistory 
+                    bookings={bookings.filter(b => b.userEmail === currentUserEmail)} 
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                    <User className="h-16 w-16 text-gray-400" />
+                    <div className="text-center space-y-2">
+                      <p className="text-gray-600">You need to be logged in to view your booking history.</p>
+                      <div className="flex items-center justify-center space-x-4 mt-4">
+                        <Link to="/login">
+                          <Button variant="default">Login</Button>
+                        </Link>
+                        <Link to="/register">
+                          <Button variant="outline">Register</Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
