@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,7 +14,7 @@ import {
 } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { User, UserPlus } from 'lucide-react';
 
 const formSchema = z.object({
@@ -29,6 +28,7 @@ const formSchema = z.object({
 });
 
 const RegisterForm = () => {
+  const navigate = useNavigate();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -79,8 +79,8 @@ const RegisterForm = () => {
       description: "Your account has been created",
     });
     
-    // In a real application with routing, you'd redirect to the dashboard here
-    window.location.reload();
+    // Redirect to home page
+    navigate('/');
   }
 
   return (
